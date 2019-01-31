@@ -65,7 +65,7 @@ login-server: obj $(LOGIN_DIR_OBJ) $(COMMON_AR)  $(MT19937AR_OBJ)
 # login object files
 
 obj/%.o: %.c $(LOGIN_H) $(COMMON_H) $(MT19937AR_H) $(LIBCONFIG_H)
-	@echo "	CC	$<"
+	@echo "	[LGN]	$<"
 	@@CC@ @CFLAGS@ $(COMMON_INCLUDE) $(MT19937AR_INCLUDE) $(LIBCONFIG_INCLUDE) -DWITH_SQL @MYSQL_CFLAGS@ @CPPFLAGS@ -c $(OUTPUT_OPTION) $<
 
 # missing object files

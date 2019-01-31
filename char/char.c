@@ -276,7 +276,7 @@ int char_mmo_char_tosql(uint32 char_id, struct mmo_charstatus* p){
 	int i = 0;
 	int count = 0;
 	int diff = 0;
-	char save_status[128]; //For displaying save information. [Skotlex]
+	char save_status[150]; //For displaying save information. [Skotlex]
 	struct mmo_charstatus *cp;
 	int errors = 0; //If there are any errors while saving, "cp" will not be updated at the end.
 	StringBuf buf;
@@ -395,6 +395,17 @@ int char_mmo_char_tosql(uint32 char_id, struct mmo_charstatus* p){
 			errors++;
 		} else
 			strcat(save_status, " status2");
+	}
+
+	/* SQL Oboro PVP */
+	if( memcmp(&p->oboropvp, &cp->oboropvp, sizeof(struct oboro_pvp)) )
+	{
+		if( SQL_ERROR == Sql_Query(sql_handle, "REPLACE INTO `oboro_pvp` (`char_id`, `kill`, `dead`) VALUES ('%d', '%d', '%d')", p->char_id, p->oboropvp.kill, p->oboropvp.dead) )
+		{
+			Sql_ShowDebug(sql_handle);
+			errors++;
+		} else
+			strcat(save_status, " oboropvprank");
 	}
 
 	/* Player PVP Event Ranking */
@@ -1551,6 +1562,19 @@ int char_mmo_char_fromsql(uint32 char_id, struct mmo_charstatus* p, bool load_ev
 	StringBuf_AppendStr(&msg_buf, " hotkeys");
 #endif
 
+	/* Character Oboro PVP Ranking */
+	if( SQL_ERROR == SqlStmt_Prepare(stmt, "SELECT `kill`, `dead` FROM `oboro_pvp` WHERE `char_id` = ?")
+		|| SQL_ERROR == SqlStmt_BindParam(stmt, 0, SQLDT_INT, &char_id, 0)
+		|| SQL_ERROR == SqlStmt_Execute(stmt)
+		|| SQL_ERROR == SqlStmt_BindColumn(stmt, 0, SQLDT_INT, &p->oboropvp.kill, 0, NULL, NULL)
+		|| SQL_ERROR == SqlStmt_BindColumn(stmt, 1, SQLDT_INT, &p->oboropvp.dead, 0, NULL, NULL)
+		|| SQL_SUCCESS != SqlStmt_NextRow(stmt) )
+	{
+		p->oboropvp.dead = 0;
+		p->oboropvp.kill = 0;
+	}
+	StringBuf_AppendStr(&msg_buf, " oboropvp");
+
 	/* Character PVP Ranking */
 	if( SQL_ERROR == SqlStmt_Prepare(stmt, "SELECT `kill_count`, `death_count`, `score` FROM `char_pvp` WHERE `char_id` = ?")
 		|| SQL_ERROR == SqlStmt_BindParam(stmt, 0, SQLDT_INT, &char_id, 0)
@@ -1837,8 +1861,8 @@ int char_dump2sql(int char_id)
 	fprintf(fp, "INSERT INTO `char` "
 		"(`account_id`, `char_num`, `name`, `class`, `base_level`, `job_level`, `base_exp`, `job_exp`, `zeny`, `str`, `agi`, `vit`, `int`, `dex`, `luk`, `max_hp`, `hp`, `max_sp`, `sp`, `status_point`, `skill_point`, `option`, `karma`, `manner`, `party_id`, `guild_id`, `pet_id`, `homun_id`, `hair`, `hair_color`, `clothes_color`, `weapon`, `shield`, `head_top`, `head_mid`, `head_bottom`, `last_map`, `last_x`, `last_y`, `save_map`, `save_x`, `save_y`, `partner_id`, `online`, `father`, `mother`, `child`, `fame`, `playtime`)"
 		" VALUES "
-		"('ACC', '%d', '@%s', '%d', '%d', '%d', '%u', '%u', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%s', '%d', '%d', '%s', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%u');\n",
-		cp.slot, esc_name, cp.class_, cp.base_level, cp.job_level, cp.base_exp, cp.job_exp, cp.zeny, cp.str, cp.agi, cp.vit, cp.int_, cp.dex, cp.luk, cp.max_hp, cp.hp, cp.max_sp, cp.sp, cp.status_point, cp.skill_point, cp.option, cp.karma, cp.manner, 0, 0, 0, 0, cp.hair, cp.hair_color, cp.clothes_color, cp.weapon, cp.shield, cp.head_top, cp.head_mid, cp.head_bottom, mapindex_id2name(cp.last_point.map), cp.last_point.x, cp.last_point.y, mapindex_id2name(cp.save_point.map), cp.save_point.x, cp.save_point.y, 0, 0, 0, 0, 0, cp.fame, cp.playtime);
+		"('%d', '%d', '@%s', '%d', '%d', '%d', '%u', '%u', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%s', '%d', '%d', '%s', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%u');\n",
+		cp.account_id, cp.slot, esc_name, cp.class_, cp.base_level, cp.job_level, cp.base_exp, cp.job_exp, cp.zeny, cp.str, cp.agi, cp.vit, cp.int_, cp.dex, cp.luk, cp.max_hp, cp.hp, cp.max_sp, cp.sp, cp.status_point, cp.skill_point, cp.option, cp.karma, cp.manner, 0, 0, 0, 0, cp.hair, cp.hair_color, cp.clothes_color, cp.weapon, cp.shield, cp.head_top, cp.head_mid, cp.head_bottom, mapindex_id2name(cp.last_point.map), cp.last_point.x, cp.last_point.y, mapindex_id2name(cp.save_point.map), cp.save_point.x, cp.save_point.y, 0, 0, 0, 0, 0, cp.fame, cp.playtime);
 
 	if( cp.hom_id )
 	{ // Homunculus Backup
@@ -1851,8 +1875,8 @@ int char_dump2sql(int char_id)
 			fprintf(fp, "INSERT INTO `homunculus` "
 				"(`char_id`, `class`,`name`,`level`,`exp`,`intimacy`,`hunger`, `str`, `agi`, `vit`, `int`, `dex`, `luk`, `hp`,`max_hp`,`sp`,`max_sp`,`skill_point`, `rename_flag`, `vaporize`) "
 				"VALUES "
-				"('CHR', '%d', '%s', '%d', '%u', '%u', '%d', '%d', %d, '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d');\n\n",
-				hd.class_, esc_name, hd.level, hd.exp, hd.intimacy, hd.hunger, hd.str, hd.agi, hd.vit, hd.int_, hd.dex, hd.luk, hd.hp, hd.max_hp, hd.sp, hd.max_sp, hd.skillpts, hd.rename_flag, hd.vaporize);
+				"('%d', '%d', '%s', '%d', '%u', '%u', '%d', '%d', %d, '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d');\n\n",
+				cp.char_id, hd.class_, esc_name, hd.level, hd.exp, hd.intimacy, hd.hunger, hd.str, hd.agi, hd.vit, hd.int_, hd.dex, hd.luk, hd.hp, hd.max_hp, hd.sp, hd.max_sp, hd.skillpts, hd.rename_flag, hd.vaporize);
 			
 			i = 0;
 			while( i < MAX_HOMUNSKILL )
@@ -1876,8 +1900,8 @@ int char_dump2sql(int char_id)
 			fprintf(fp, "INSERT INTO `storage` "
 				"(`account_id`, `nameid`, `amount`, `equip`, `identify`, `refine`, `attribute`, `card0`, `card1`, `card2`, `card3`, `expire_time`, `unique_id`, `bound`)"
 				" VALUES "
-				"('ACC', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%u', '%"PRIu64"', '%d');\n",
-				i_data->nameid, i_data->amount, i_data->equip, i_data->identify, i_data->refine, i_data->attribute, i_data->card[0], i_data->card[1], i_data->card[2], i_data->card[3], i_data->expire_time, i_data->unique_id, i_data->bound);
+				"('%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%u', '%"PRIu64"', '%d');\n",
+				cp.account_id, i_data->nameid, i_data->amount, i_data->equip, i_data->identify, i_data->refine, i_data->attribute, i_data->card[0], i_data->card[1], i_data->card[2], i_data->card[3], i_data->expire_time, i_data->unique_id, i_data->bound);
 			i++;
 		}
 
@@ -1896,8 +1920,8 @@ int char_dump2sql(int char_id)
 		fprintf(fp, "INSERT INTO `inventory` "
 			"(`char_id`, `nameid`, `amount`, `equip`, `identify`, `refine`, `attribute`, `card0`, `card1`, `card2`, `card3`, `expire_time`, `unique_id`, `bound`)"
 			" VALUES "
-			"('CHR', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%u', '%"PRIu64"', '%d');\n",
-			i_data->nameid, i_data->amount, i_data->equip, i_data->identify, i_data->refine, i_data->attribute, i_data->card[0], i_data->card[1], i_data->card[2], i_data->card[3], i_data->expire_time, i_data->unique_id, i_data->bound);
+			"('%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%u', '%"PRIu64"', '%d');\n",
+			cp.char_id, i_data->nameid, i_data->amount, i_data->equip, i_data->identify, i_data->refine, i_data->attribute, i_data->card[0], i_data->card[1], i_data->card[2], i_data->card[3], i_data->expire_time, i_data->unique_id, i_data->bound);
 		i++;
 	}
 
@@ -1910,8 +1934,8 @@ int char_dump2sql(int char_id)
 		fprintf(fp, "INSERT INTO `cart_inventory` "
 			"(`char_id`, `nameid`, `amount`, `equip`, `identify`, `refine`, `attribute`, `card0`, `card1`, `card2`, `card3`, `expire_time`, `unique_id`, `bound`)"
 			" VALUES "
-			"('CHR', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%u', '%"PRIu64"', '%d');\n",
-			i_data->nameid, i_data->amount, i_data->equip, i_data->identify, i_data->refine, i_data->attribute, i_data->card[0], i_data->card[1], i_data->card[2], i_data->card[3], i_data->expire_time, i_data->unique_id, i_data->bound);
+			"('%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d', '%u', '%"PRIu64"', '%d');\n",
+			cp.char_id,i_data->nameid, i_data->amount, i_data->equip, i_data->identify, i_data->refine, i_data->attribute, i_data->card[0], i_data->card[1], i_data->card[2], i_data->card[3], i_data->expire_time, i_data->unique_id, i_data->bound);
 		i++;
 	}
 
@@ -1922,7 +1946,7 @@ int char_dump2sql(int char_id)
 		if( cp.skill[i].id > 0 )
 		{
 			s_data = &cp.skill[i];
-			fprintf(fp, "INSERT INTO `skill` (`char_id`, `id`, `lv`) VALUES ('CHR', '%d', '%d');\n", s_data->id, s_data->lv);
+			fprintf(fp, "INSERT INTO `skill` (`char_id`, `id`, `lv`) VALUES ('%d', '%d', '%d');\n",cp.char_id, s_data->id, s_data->lv);
 		}
 		i++;
 	}
@@ -2251,6 +2275,8 @@ int char_delete_char_sql(uint32 char_id){
 	mercenary_owner_delete(char_id);
 
 	/* Char Ranking */
+	if( SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `oboro_pvp` WHERE `char_id` = '%d'", char_id) )
+		Sql_ShowDebug(sql_handle);
 	if( SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `char_pvp` WHERE `char_id` = '%d'", char_id) )
 		Sql_ShowDebug(sql_handle);
 	if( SQL_ERROR == Sql_Query(sql_handle, "DELETE FROM `char_pk` WHERE `char_id` = '%d'", char_id) )
@@ -2740,6 +2766,8 @@ int char_ranking_reset(int type)
 		break;
 	case 2:
 		if( SQL_ERROR == Sql_Query(sql_handle, "TRUNCATE TABLE `char_pvp`") )
+			Sql_ShowDebug(sql_handle);
+		if( SQL_ERROR == Sql_Query(sql_handle, "TRUNCATE TABLE `oboro_pvp`") )
 			Sql_ShowDebug(sql_handle);
 		break;
 	}

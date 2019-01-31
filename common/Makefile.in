@@ -60,11 +60,11 @@ $(COMMON_AR): $(COMMON_DIR_OBJ)
 common: obj $(COMMON_DIR_OBJ) $(MT19937AR_OBJ) $(LIBCONFIG_AR) $(COMMON_AR)
 
 obj/%.o: %.c $(COMMON_H) $(MT19937AR_H) $(LIBCONFIG_H)
-	@echo "	CC	$<"
+	@echo "	[CMN]	$<"
 	@@CC@ @CFLAGS_AR@ $(MT19937AR_INCLUDE) $(LIBCONFIG_INCLUDE) @MYSQL_CFLAGS@ @CPPFLAGS@ -c $(OUTPUT_OPTION) $<
 
 obj/mini%.o: %.c $(COMMON_H) $(MT19937AR_H) $(LIBCONFIG_H)
-	@echo "	CC	$<"
+	@echo "	[CMN]	$<"
 	@@CC@ @CFLAGS_AR@ $(MT19937AR_INCLUDE) $(LIBCONFIG_INCLUDE) @MYSQL_CFLAGS@ -DMINICORE @CPPFLAGS@ -c $(OUTPUT_OPTION) $<
 
 # missing object files

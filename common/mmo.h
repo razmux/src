@@ -21,7 +21,7 @@
 // see conf/battle/client.conf for other version
 
 #ifndef PACKETVER
-	#define PACKETVER 20101124
+	#define PACKETVER 20131223
 	//#define PACKETVER 20120410
 #endif
 
@@ -69,8 +69,8 @@
 #define MAX_STORAGE 600 ///Max number of storage slots a player can have, (up to ~850 tested)
 #define MAX_EXTRA_STORAGE 1///eAmod Extra Storage Size
 #define MAX_GUILD_STORAGE 600 ///Max number of storage slots a guild
-#define MAX_PARTY 12 ///Max party member
-#define MAX_GUILD 16+10*6	///Increased max guild members +6 per 1 extension levels [Lupus]
+#define MAX_PARTY 15 ///Max party member
+#define MAX_GUILD 10+10*2	///Increased max guild members +2 per 1 extension levels [Lupus]
 #define MAX_GUILDPOSITION 20	///Increased max guild positions to accomodate for all members [Valaris] (removed) [PoW]
 #define MAX_GUILDEXPULSION 32 ///Max Guild expulsion
 #define MAX_GUILDALLIANCE 16 ///Max Guild alliance
@@ -402,6 +402,12 @@ struct hotkey {
 };
 #endif
 
+struct oboro_pvp {
+	unsigned int 
+		kill,
+		dead;
+};
+
 struct s_killrank {
 	unsigned short
 		kill_count,
@@ -597,6 +603,8 @@ struct mmo_charstatus {
 	bool show_equip,allow_party;
 	unsigned char iprank;
 	short rename;
+
+	struct oboro_pvp oboropvp; // [Oboro]
 
 	time_t delete_date;
 	time_t unban_time;

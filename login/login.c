@@ -278,9 +278,11 @@ int login_mmo_auth_new(const char* userid, const char* pass, const char sex, con
 int login_mmo_auth(struct login_session_data* sd, bool isServer) {
 	struct mmo_account acc;
 	int len;
-
+	
 	char ip[16];
 	ip2str(session[sd->fd]->client_addr, ip);
+	
+	ShowInfo("Entro\n");
 
 	// DNS Blacklist check
 	if( login_config.use_dnsbl ) {
@@ -369,11 +371,13 @@ int login_mmo_auth(struct login_session_data* sd, bool isServer) {
 			}
 		}
 
-		if( !match ) {
+		if( !match ) 
+		{
 			char smd5[33];
 			int i;
 
-			if( !sd->has_client_hash ) {
+			if( !sd->has_client_hash ) 
+			{
 				ShowNotice("Client didn't send client hash (account: %s, pass: %s, ip: %s)\n", sd->userid, sd->passwd, acc.state, ip);
 				return 5;
 			}
